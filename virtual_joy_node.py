@@ -19,19 +19,19 @@ class VirtualJoyNode(Node):
         # Estado interno del control
         
         # --- AXES (EJES) ---
-        # Mantenemos longitud 8 como pediste.
+        # Mantenemos longitud 8.
         # Estándar: [L_Hor(0), L_Ver(1), L2_Trig(2), R_Hor(3), R_Ver(4), R2_Trig(5), Dpad_H(6), Dpad_V(7)]
         self.axes = [0.0] * 8 
         
         # --- BUTTONS (BOTONES) ---
-        # Longitud 11 según tu especificación exacta:
+        # Longitud 11.
         # 0: X, 1: O, 2: Cuadrado, 3: Triangulo
-        # 4: L1(LB), 5: R1(RB)
-        # 6: Select(Back), 7: Start, 8: PS(XboxBtn)
-        # 9: L3(LS), 10: R3(RS)
+        # 4: L1, 5: R1
+        # 6: Select, 7: Start, 8: PS
+        # 9: L3 (Sin botón visual, siempre 0), 10: R3 (Sin botón visual, siempre 0)
         self.buttons = [0] * 11 
         
-        self.get_logger().info("Nodo Virtual Joy Iniciado. Buttons: 11, Axes: 8")
+        self.get_logger().info("Nodo Virtual Joy Iniciado. Buttons: 11 (L3/R3 ocultos), Axes: 8")
 
     def publish_joy(self, event=None):
         msg = Joy()
@@ -46,7 +46,7 @@ class PSControllerGUI:
         self.node = ros_node
         self.root = tk.Tk()
         self.root.title("ROS 2 Virtual PS Controller (Custom Mapping)")
-        self.root.geometry("600x500") # Un poco más alto para caber todo bien
+        self.root.geometry("600x500") 
         self.root.resizable(False, False)
 
         self.update_ros()
@@ -112,11 +112,10 @@ class PSControllerGUI:
         self.canvas.coords(tag, base_x+dx-15, base_y+dy-15, base_x+dx+15, base_y+dy+15)
 
         # Actualizar Ejes ROS
-        # CAMBIO SOLICITADO: Invertimos el signo de dx para el eje X (idx_x).
-        # Ahora: Izquierda (dx negativo) -> Positivo en ROS. Derecha (dx positivo) -> Negativo en ROS.
+        # CAMBIO PREVIO MANTENIDO: Eje X invertido (-(dx/max_dist))
         self.node.axes[idx_x] = -(dx / max_dist)
         
-        # El eje Y se mantiene invertido (-dy) como estaba antes (Arriba positivo)
+        # El eje Y se mantiene invertido (-dy) para corregir coord de pantalla vs cartesiano
         self.node.axes[idx_y] = -(dy / max_dist) 
 
     def reset_stick(self, side):
@@ -155,44 +154,29 @@ class PSControllerGUI:
 
     def create_buttons(self):
         # 1. BOTONES DE ACCIÓN (Derecha)
-        # Índice 0: X (Equis)
         self.make_btn("X", 435, 220, "#0000CC", 0) 
-        # Índice 1: O (Círculo)
         self.make_btn("●", 475, 190, "#CC0000", 1) 
-        # Índice 2: Cuadrado (Rectángulo) -> Nota: Movido a la izq en la cruz geométrica
         self.make_btn("■", 395, 190, "#CC00CC", 2) 
-        # Índice 3: Triángulo
         self.make_btn("▲", 435, 160, "#00AA00", 3) 
 
         # 2. HOMBROS / BUMPERS
-        # Índice 4: L1 (LB)
         self.make_btn("L1", 100, 80, "gray", 4, w=4)
-        # Índice 5: R1 (RB)
         self.make_btn("R1", 450, 80, "gray", 5, w=4)
 
-        # 3. GATILLOS / TRIGGERS (L2 y R2)
-        # NOTA: No están en tu lista de buttons (0-10).
-        # Los mapeamos a AXES 2 y 5 (Estándar ROS).
-        # Simulamos que al presionar el botón el eje va a -1.0 (presionado a fondo)
+        # 3. GATILLOS / TRIGGERS (L2 y R2 -> Ejes 2 y 5)
         self.make_axis_btn("L2", 100, 50, "gray", 2, -1.0, 1.0) 
         self.make_axis_btn("R2", 450, 50, "gray", 5, -1.0, 1.0)
 
         # 4. BOTONES CENTRALES
-        # Índice 6: SELECT (Back)
         self.make_btn("SEL", 220, 190, "black", 6, w=5)
-        # Índice 7: START (Start)
         self.make_btn("STA", 320, 190, "black", 7, w=5)
-        # Índice 8: PS (Xbox Button)
         self.make_btn("PS", 280, 240, "#111", 8, w=4)
 
-        # 5. STICK CLICKS (LS / RS)
-        # Índice 9: L3 (LS)
-        self.make_btn("L3", 150, 280, "#444", 9, w=2) # Al lado del stick izq
-        # Índice 10: R3 (RS)
-        self.make_btn("R3", 450, 280, "#444", 10, w=2) # Al lado del stick der
+        # 5. STICK CLICKS (LS / RS) -> ELIMINADOS VISUALMENTE
+        # Se han eliminado las llamadas a make_btn para índices 9 y 10.
+        # Los índices 9 y 10 en self.buttons permanecerán en 0.
 
         # 6. D-PAD (FLECHAS)
-        # Estos siguen mapeados a Axes 6 y 7 como en el código anterior
         btn_u = tk.Button(self.root, text="▲", bg="gray", fg="white", width=3)
         btn_u.place(x=135, y=160)
         btn_u.bind('<ButtonPress-1>', lambda e: self.set_axis(7, 1.0))
