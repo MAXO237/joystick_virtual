@@ -112,7 +112,11 @@ class PSControllerGUI:
         self.canvas.coords(tag, base_x+dx-15, base_y+dy-15, base_x+dx+15, base_y+dy+15)
 
         # Actualizar Ejes ROS
-        self.node.axes[idx_x] = dx / max_dist
+        # CAMBIO SOLICITADO: Invertimos el signo de dx para el eje X (idx_x).
+        # Ahora: Izquierda (dx negativo) -> Positivo en ROS. Derecha (dx positivo) -> Negativo en ROS.
+        self.node.axes[idx_x] = -(dx / max_dist)
+        
+        # El eje Y se mantiene invertido (-dy) como estaba antes (Arriba positivo)
         self.node.axes[idx_y] = -(dy / max_dist) 
 
     def reset_stick(self, side):
